@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y \
 # Copy the current directory contents into the container
 COPY . /var
 
+COPY .bashrc /root/.bashrc
+
 # Verify FFmpeg installation
 RUN ffmpeg -version && ffprobe -version
 

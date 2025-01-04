@@ -36,9 +36,9 @@ class YouTubeAudioExtractor:
         self.output_dir = Path(output_dir)
         self._setup_logging()
         self._setup_download_options()
-        self.inputs = [input.url for input in inputs]
+        self.inputs = [input.url for input in inputs] # this uses list comprehension and transformations!
         print( self.inputs )
-        sys.exit("Stopping execution.")  # Terminates the program
+        # sys.exit() used for debugging purposes
 
     def _setup_logging(self) -> None:
         """Configure logging"""
@@ -64,41 +64,7 @@ class YouTubeAudioExtractor:
             'no_warnings': True
         }
 
-    def extract_single(self, url: str) -> DownloadResult:
-        """
-        Extract audio from a single YouTube video
-
-        Args:
-            url: YouTube video URL
-
-        Returns:
-            DownloadResult object containing download status and details
-        """
-        try:
-            # Ensure output directory exists
-            self.output_dir.mkdir(parents=True, exist_ok=True)
-
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
-                # Get video info first
-                info = ydl.extract_info(url, download=False)
-                video_title = info['title']
-
-                self.logger.info(f"Extracting audio from: {video_title}")
-
-                # Download the audio
-                ydl.download([url])
-
-                # Construct the output filepath
-                downloaded_file = self.output_dir / f"{video_title}.mp3"
-                return DownloadResult(url, True, downloaded_file)
-
-
-        except Exception as e:
-            error_msg = str(e)
-            self.logger.error(f"Failed to extract audio from {url}: {error_msg}")
-            return DownloadResult(url, False, error_msg)
-
-    def extract_batch(self, urls: list[str], max_workers: int = 3) -> list[DownloadResult]:
+    def extract_batch(self, max_workers: int = 3) -> list[DownloadResult]:
         """
         Extract audio from multiple YouTube URLs concurrently
 
@@ -118,15 +84,7 @@ def main() -> None:
     inputs = inputs.get_inputs()
     extractor = YouTubeAudioExtractor(output_dir="youtube_audio", inputs=inputs)
 
-    # Single video example
-    # single_url = "https://www.youtube.com/watch?v=F-r9Rwd8Yew-"
-    # result = extractor.extract_single(single_url)
-
-    # Batch download example
-    # urls = [
-    #     "https://www.youtube.com/watch?v=F-r9Rwd8Yew-",
-    # ]
-    results = extractor.extract_batch(max_workers=3)
+    extractor.extract_batch(max_workers=3)
 
 
 if __name__ == "__main__":
