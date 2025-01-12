@@ -36,9 +36,9 @@ class YouTubeAudioExtractor:
         self.output_dir = Path(output_dir)
         self._setup_logging()
         self._setup_download_options()
-        self.inputs = [input.url for input in inputs] # this uses list comprehension and transformations!
+        self.inputs = [input.url for input in inputs] # list comprehension and transformations!
         print( self.inputs )
-        # sys.exit() used for debugging purposes
+        # sys.exit("Stopping execution.")  # Terminates the program
 
     def _setup_logging(self) -> None:
         """Configure logging"""
@@ -75,16 +75,38 @@ class YouTubeAudioExtractor:
         Returns:
             List of DownloadResult objects
         """
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            results = list(executor.map(self.extract_single, self.inputs ))
-        return results
+        try:
+            # Ensure output directory exists
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+
+            results = []
+            for url in self.inputs:
+                with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+                    # Get video info first
+                    info = ydl.extract_info(url, download=False)
+                    video_title = info['title']
+
+                    self.logger.info(f"Extracting audio from: {video_title}")
+
+                    # Download the audio
+                    ydl.download([url])
+
+                    # Construct the output filepath
+                    downloaded_file = self.output_dir / f"{video_title}.mp3"
+                    results.append(DownloadResult(url, True, downloaded_file))
+            return results
+
+        except Exception as e:
+            error_msg = str(e)
+            self.logger.error(f"Failed to extract audio: {error_msg}")
+            return [DownloadResult(url, False, None, error_msg) for url in self.inputs]
 
 def main() -> None:
     inputs = InputHandler(sys.argv[1:])
     inputs = inputs.get_inputs()
     extractor = YouTubeAudioExtractor(output_dir="youtube_audio", inputs=inputs)
 
-    extractor.extract_batch(max_workers=3)
+    results = extractor.extract_batch(max_workers=3)
 
 
 if __name__ == "__main__":
